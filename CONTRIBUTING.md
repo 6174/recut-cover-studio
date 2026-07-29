@@ -16,6 +16,7 @@
 make app-link APP=apps/cover-studio
 cd service && go test ./...
 cd ../web && npm run build
+cd ../apps/cover-studio/ui && npm ci && npm run build
 ```
 
 修改 `background.js` 时，至少检查以下路径：
@@ -28,6 +29,7 @@ cd ../web && npm run build
 
 - 一个提交只解决一个问题。
 - 不提交素材库内容、SQLite 数据库、凭据或生成图片。
+- `ui/dist/` 是安装入口，修改 UI 后必须重新构建并提交对应产物。
 - 新增渠道尺寸或模板时，说明它的实际发布场景；不要用“通用”掩盖不兼容的画幅。
 - 变更文件职责、目录或公开 operation 后，更新相应 README 与集成契约。
 

@@ -9,7 +9,7 @@ Cover Studio 是一个为 Recut 设计的工作区型封面创作台。它将发
 - **渠道尺寸**：内置小红书、抖音、B 站和 YouTube 画幅，可继续扩展。
 - **封面模板**：模板是可编辑提示词与参考图 Asset ID 的组合，不是不可追溯的截图。
 - **参考图选择**：从 Recut 素材库选择一张或多张已完成图片，作为生成的视觉参考。
-- **Agent 生成**：界面将选择交给 Recut Agent；Agent 通过平台的图片生成能力产出真实 Asset。
+- **Agent 生成**：界面将选择交给 Recut Agent；Agent 按平台配置选择图片生成方案。能取得 Recut Asset 的结果才会进入素材库历史。
 - **可追溯历史**：每次成功生成都保存 `assetId`、完整提示词、渠道、尺寸、模板和参考图。图片本体仍属于素材库。
 
 ## 使用方式
@@ -20,7 +20,7 @@ Cover Studio 是一个为 Recut 设计的工作区型封面创作台。它将发
 4. 写下本次画面要求，点击“交给 Agent 生成”。
 5. Agent 成功生成后会将封面保存在素材库，并写入下方历史。
 
-生成图默认不包含可读文字、Logo 或水印，而是为后续可控排版留出空间。
+生成图默认不包含可读文字、Logo 或水印，而是为后续可控排版留出空间。当前 `codex/image` 原生生成也遵守同一交付规则：Agent 将最终图片写入当前 Recut 项目目录，再调用 `recut.media.import_image` 归档，取得真实 `assetId` 后才会进入素材库与本 App 历史。对话预览从不构成封面交付。
 
 ## 安装与本地开发
 
@@ -30,6 +30,8 @@ Cover Studio 是一个为 Recut 设计的工作区型封面创作台。它将发
 make app-link APP=apps/cover-studio
 make dev
 ```
+
+UI 开发时，在 `ui/` 内执行 `npm ci && npm run dev`；发布或安装前执行 `npm run build` 并提交更新后的 `ui/dist/`，宿主读取 `ui/dist/index.html`。
 
 `manifest.json` 是唯一的运行时配置。它声明此 App 为 `standalone`，因此 Recut 会为它创建一个稳定的私有工作区 scope，而不会创建用户项目。
 
@@ -49,7 +51,7 @@ App 不读取其他 App 的数据库，也不写入本地媒体文件。它只�
 ## 架构
 
 ```text
-ui/index.html
+ui/dist/index.html
   ├─ 选择渠道、模板、参考图和补充要求
   ├─ 调用 background.js 保存当前配置与读取历史
   └─ 发送生成任务给 Recut Agent
@@ -60,8 +62,11 @@ background.js
   └─ cover_history       指向素材库 Asset 的生成历史
 
 Recut Agent
-  ├─ recut.image.generate
-  └─ recut.cover-studio.cover.save
+  ├─ 按 `recut.project_context` 选择图片生成方案
+  │   ├─ Media Platform route → `recut.image.generate`
+  │   └─ Codex 原生方案 → 宿主提供的图片生成能力
+  ├─ Media Platform result → Recut Media Asset → cover.save
+  └─ Codex 原生 result → 写入项目 → recut.media.import_image → Asset → cover.save
 ```
 
 完整的 App operation 契约见 [docs/integration.md](docs/integration.md)。贡献方式见 [CONTRIBUTING.md](CONTRIBUTING.md)。
@@ -72,7 +77,7 @@ Recut Agent
 AGENTS.md              Recut Agent 的封面生成规则
 background.js          App SQLite operation 后端
 manifest.json          App 身份、权限、UI 与 operation 声明
-ui/index.html          无构建依赖的封面创作台
+ui/                    React/Vite 封面创作台；与 Vox B-roll 使用相同的 SDK、Asset SSE 缓存与分层组件架构
 docs/                  Recut 集成与 API 契约
 CONTRIBUTING.md        开发、测试和提交约定
 CHANGELOG.md           发布变更记录

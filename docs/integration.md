@@ -1,6 +1,6 @@
 # Recut 集成契约
 
-Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 Media Asset 协议。它不自建图片生成服务，也不复制素材文件。
+Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 Media Asset 协议。它不自建图片生成服务，也不复制素材文件；图片生成的实际执行路径始终由当前平台配置决定。
 
 ## 运行时形态
 
@@ -10,7 +10,7 @@ Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 M
 {
   "type": "standalone",
   "background": "background.js",
-  "ui": { "standaloneView": "ui/index.html" },
+  "ui": { "standaloneView": "ui/dist/index.html" },
   "permissions": ["sqlite"]
 }
 ```
@@ -23,14 +23,16 @@ Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 M
 用户选择
   → cover.configure
   → cover.context
-  → Agent 读取模板与上下文
-  → recut.image.generate
+  → Agent 读取 recut.project_context、模板与上下文
+  → 根据平台配置选择图片生成方案
+      ├─ Media Platform route → recut.image.generate
+      └─ Codex 原生方案 → 宿主提供的图片生成能力
   → Media Asset assetId
   → cover.save
   → cover.list
 ```
 
-只有 `recut.image.generate` 成功返回 `assetIds[0]` 后，Agent 才能调用 `cover.save`。失败的设想或文本不得写入历史。
+`recut.project_context.media.defaultRoutes` 是当前 Media Platform route 的事实来源。若当前平台选择 Codex 原生图片生成，Agent 应使用宿主提供的对应能力，而不是强行调用 `recut.image.generate`；随后必须把最终图片写入当前 Recut 项目目录，并调用 `recut.media.import_image`。这个平台工具会验证相对路径、符号链接、文件类型和大小，自动关联当前 scope，并返回唯一可保存的真实 `assetId`。不得伪造 Asset、只交付对话预览或创建缺少 Asset 的历史；失败的设想或文本不得写入历史。
 
 ## App operations
 
@@ -47,8 +49,8 @@ Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 M
 
 ## Asset 规则
 
-- 参考图只以 `referenceAssetIds` 保存，并在生成时传为 `imageAssetIds`。
-- 生成结果只以 `assetId` 保存。Media Platform 是图片内容、状态和文件路径的唯一真相源。
+- 参考图只以 `referenceAssetIds` 保存，并按当前图片生成方案支持的参考图输入方式传入；Media Platform route 使用 `imageAssetIds`。
+- 生成结果只以 `assetId` 保存。Media Platform 是图片内容、状态和文件路径的唯一真相源；Codex 原生图也必须经过 `recut.media.import_image` 成为该 Asset，不能以对话结果或本地路径替代。
 - 历史数据可以删除或重做，但绝不删除素材库中的 Asset。
 - 图片生成提示词应明确尺寸，禁止要求模型生成可读文字、Logo 或水印。
 
