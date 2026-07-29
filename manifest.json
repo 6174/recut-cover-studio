@@ -1,0 +1,64 @@
+{
+  "manifestVersion": 1,
+  "id": "recut.cover-studio",
+  "name": "封面生成",
+  "author": "Recut",
+  "description": "用渠道尺寸、参考封面和可复用提示词模板生成并沉淀封面素材。",
+  "version": "0.1.0",
+  "type": "standalone",
+  "background": "background.js",
+  "ui": { "standaloneView": "ui/index.html" },
+  "onboarding": [
+    {
+      "id": "generate-cover",
+      "title": "从一个封面开始",
+      "description": "选择发布渠道、模板与参考图，再生成一张可用封面。",
+      "prompt": "我要生成一张封面。请先读取 cover.context，确认我选择的渠道尺寸、模板、参考图和补充要求；然后调用 recut.image.generate 生成一张封面，并调用 recut.cover-studio.cover.save 保存 assetId、完整提示词、渠道、尺寸、模板和参考图。"
+    },
+    {
+      "id": "make-template",
+      "title": "沉淀为模板",
+      "description": "把一次有效的封面方向保存为可复用模板。",
+      "prompt": "请先读取 cover.context 和 template.list。基于我选定的封面方向，调用 template.save 保存一个名称清晰的模板；模板必须包含可编辑提示词、适用渠道、默认尺寸与参考图 assetId，不能复制或生成图片。"
+    }
+  ],
+  "permissions": ["sqlite"],
+  "operations": [
+    {
+      "name": "cover.context",
+      "surfaces": ["api", "mcp"],
+      "description": "读取封面创作台当前选择的渠道、尺寸、模板、参考图和补充提示词。生成前必须调用。",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "cover.configure",
+      "surfaces": ["api"],
+      "description": "保存当前封面创作台的渠道、尺寸、模板、参考图和补充提示词，不会生成图片。",
+      "inputSchema": { "type": "object", "required": ["channel", "width", "height"], "properties": { "channel": { "type": "string" }, "width": { "type": "number" }, "height": { "type": "number" }, "templateId": { "type": "string" }, "referenceAssetIds": { "type": "array", "items": { "type": "string" } }, "brief": { "type": "string" } } }
+    },
+    {
+      "name": "template.list",
+      "surfaces": ["api", "mcp"],
+      "description": "列出内置与用户保存的封面模板。每个模板含提示词、适用渠道、默认尺寸和参考图 assetId。",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "template.save",
+      "surfaces": ["api", "mcp"],
+      "description": "保存一个可复用封面模板；只保存提示词和参考图引用，不复制素材。",
+      "inputSchema": { "type": "object", "required": ["name", "prompt"], "properties": { "name": { "type": "string" }, "prompt": { "type": "string" }, "channel": { "type": "string" }, "width": { "type": "number" }, "height": { "type": "number" }, "referenceAssetIds": { "type": "array", "items": { "type": "string" } } } }
+    },
+    {
+      "name": "cover.list",
+      "surfaces": ["api"],
+      "description": "读取封面生成历史。每条记录保留 Asset 引用、提示词、渠道、尺寸、模板与参考图，实际文件仍由素材库管理。",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "cover.save",
+      "surfaces": ["mcp"],
+      "description": "在 recut.image.generate 成功后保存该封面的 assetId 和完整生成元数据。不得保存没有 assetId 的文字设想。",
+      "inputSchema": { "type": "object", "required": ["assetId", "prompt", "channel", "width", "height"], "properties": { "assetId": { "type": "string" }, "prompt": { "type": "string" }, "channel": { "type": "string" }, "width": { "type": "number" }, "height": { "type": "number" }, "templateId": { "type": "string" }, "referenceAssetIds": { "type": "array", "items": { "type": "string" } } } }
+    }
+  ]
+}

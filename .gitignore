@@ -1,0 +1,6 @@
+.DS_Store
+.recut/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+ui/dist/
