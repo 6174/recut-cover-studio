@@ -43,7 +43,7 @@ UI 开发时，在 `ui/` 内执行 `npm ci && npm run dev`；发布或安装前�
 | --- | --- |
 | 生成图片和用户上传参考图 | Recut Media Platform 的素材库，以全局 `assetId` 标识 |
 | 模板 | App SQLite；保存提示词、默认尺寸和参考图 `assetId` |
-| 当前选择 | App SQLite；保存渠道、尺寸、模板、参考图和补充要求 |
+| 当前选择 | App SQLite；保存渠道、尺寸、模板、参考图、补充要求和本次真实预览的 `assetId` |
 | 历史记录 | App SQLite；保存可追溯元数据，不复制媒体文件 |
 
 App 不读取其他 App 的数据库，也不写入本地媒体文件。它只通过 Recut 的公开 capability、MCP 和 Asset ID 协议与平台协作。
@@ -52,12 +52,13 @@ App 不读取其他 App 的数据库，也不写入本地媒体文件。它只�
 
 ```text
 ui/dist/index.html
-  ├─ 选择渠道、模板、参考图和补充要求
-  ├─ 调用 background.js 保存当前配置与读取历史
+  ├─ 左侧选择渠道、模板、参考图和补充要求
+  ├─ 右侧只渲染本次已归档的真实 Asset
+  ├─ 调用 background.js 保存当前配置、真实预览与读取历史
   └─ 发送生成任务给 Recut Agent
 
 background.js
-  ├─ cover_meta          当前创作选择
+  ├─ cover_meta          当前创作选择与当前预览 Asset
   ├─ cover_templates     可复用模板
   └─ cover_history       指向素材库 Asset 的生成历史
 

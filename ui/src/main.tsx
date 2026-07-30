@@ -8,6 +8,7 @@ import { createRoot } from "react-dom/client";
 import { useCallback, useEffect, useState } from "react";
 import { AssetPicker } from "./asset-picker";
 import { CoverComposer } from "./cover-composer";
+import { CoverPreview } from "./cover-preview";
 import { HistoryGrid } from "./history-grid";
 import { recut } from "./recut-sdk";
 import type { Channel, Cover, Draft, Template } from "./types";
@@ -16,7 +17,7 @@ import { Button } from "./ui";
 import "./style.css";
 
 const channels: Channel[] = [{ id: "小红书", label: "小红书", width: 1242, height: 1660 }, { id: "抖音", label: "抖音封面", width: 1080, height: 1920 }, { id: "B站", label: "B 站", width: 1146, height: 717 }, { id: "YouTube", label: "YouTube", width: 1280, height: 720 }];
-const initialDraft: Draft = { channel: "小红书", width: 1242, height: 1660, templateId: "", referenceAssetIds: [], brief: "" };
+const initialDraft: Draft = { channel: "小红书", width: 1242, height: 1660, templateId: "", referenceAssetIds: [], brief: "", previewAssetId: "" };
 
 function App() {
   const [draft, setDraft] = useState<Draft>(initialDraft);
@@ -54,7 +55,9 @@ function App() {
     } catch (cause) { setMessage(cause instanceof Error ? cause.message : "无法发起生成。"); } finally { setBusy(false); }
   };
 
-  return <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,oklch(0.99_0.012_151),transparent_34rem)] p-4 sm:p-6"><div className="mx-auto max-w-[1440px]"><header className="mb-5 border-b border-border/80 pb-4"><p className="font-mono text-[10px] font-semibold tracking-[0.18em] text-primary">RECUT APP / COVER STUDIO</p><h1 className="mt-1.5 text-2xl font-semibold tracking-tight sm:text-3xl">封面生成</h1><p className="mt-1 text-sm text-muted-foreground">用渠道尺寸、视觉模板和素材库参考图构成可追溯的封面创作决策。</p></header>{loading && !templates.length ? <div className="grid min-h-72 place-items-center rounded-xl border bg-card text-sm text-muted-foreground">正在读取封面创作台…</div> : <><CoverComposer busy={busy} channels={channels} draft={draft} onChange={setDraft} onGenerate={() => void generate()} onOpenReferences={() => setPickerOpen(true)} onRemoveReference={(id) => setDraft((current) => ({ ...current, referenceAssetIds: current.referenceAssetIds.filter((item) => item !== id) }))} templates={templates} /><HistoryGrid covers={covers} /></>}<footer className="mt-4 flex items-center justify-between gap-4 text-xs text-muted-foreground"><p role="status">{message}</p><Button disabled={loading} onClick={() => void refresh()} type="button" variant="ghost">重新同步</Button></footer></div>{pickerOpen && <AssetPicker ids={draft.referenceAssetIds} onChange={(ids) => setDraft((current) => ({ ...current, referenceAssetIds: ids }))} onClose={() => setPickerOpen(false)} />}</main>;
+  const channel = channels.find((item) => item.id === draft.channel) ?? channels[0];
+  const template = templates.find((item) => item.id === draft.templateId);
+  return <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,oklch(0.99_0.012_151),transparent_34rem)] p-4 sm:p-6"><div className="mx-auto max-w-[1600px]"><header className="mb-5 border-b border-border/80 pb-4"><p className="font-mono text-[10px] font-semibold tracking-[0.18em] text-primary">RECUT APP / COVER STUDIO</p><h1 className="mt-1.5 text-2xl font-semibold tracking-tight sm:text-3xl">封面生成</h1><p className="mt-1 text-sm text-muted-foreground">左侧填写生成意图；右侧只展示本次已经归档的真实封面。</p></header>{loading && !templates.length ? <div className="grid min-h-72 place-items-center rounded-xl border bg-card text-sm text-muted-foreground">正在读取封面创作台…</div> : <><div className="grid items-start gap-5 xl:grid-cols-[27rem_minmax(0,1fr)]"><CoverComposer busy={busy} channels={channels} draft={draft} onChange={setDraft} onGenerate={() => void generate()} onOpenReferences={() => setPickerOpen(true)} onRemoveReference={(id) => setDraft((current) => ({ ...current, referenceAssetIds: current.referenceAssetIds.filter((item) => item !== id) }))} templates={templates} /><CoverPreview channel={channel} draft={draft} template={template} /></div><HistoryGrid covers={covers} /></>}<footer className="mt-4 flex items-center justify-between gap-4 text-xs text-muted-foreground"><p role="status">{message}</p><Button disabled={loading} onClick={() => void refresh()} type="button" variant="ghost">重新同步</Button></footer></div>{pickerOpen && <AssetPicker ids={draft.referenceAssetIds} onChange={(ids) => setDraft((current) => ({ ...current, referenceAssetIds: ids }))} onClose={() => setPickerOpen(false)} />}</main>;
 }
 
 createRoot(document.getElementById("root")!).render(<MediaAssetEventsProvider><App /></MediaAssetEventsProvider>);

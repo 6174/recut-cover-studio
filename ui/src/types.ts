@@ -6,5 +6,5 @@
  */
 export type Channel = { id: string; label: string; width: number; height: number };
 export type Template = { id: string; name: string; prompt: string; channel: string; width: number; height: number; referenceAssetIds: string[]; source: "built-in" | "saved" };
-export type Draft = { channel: string; width: number; height: number; templateId: string; referenceAssetIds: string[]; brief: string };
+export type Draft = { channel: string; width: number; height: number; templateId: string; referenceAssetIds: string[]; brief: string; previewAssetId?: string };
 export type Cover = { id: string; assetId: string; prompt: string; channel: string; width: number; height: number; templateId: string; referenceAssetIds: string[]; createdAt: string };

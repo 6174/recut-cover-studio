@@ -24,6 +24,7 @@ cd ../apps/cover-studio/ui && npm ci && npm run build
 1. 保存 UI 选择后，`cover.context` 返回同一份数据。
 2. `template.save` 后，`template.list` 能返回该模板。
 3. 只有带真实 `assetId` 的 `cover.save` 能进入 `cover.list`。
+4. `cover.save` 后，`cover.context.previewAssetId` 必须指向同一个真实 Asset。
 
 ## 提交原则
 

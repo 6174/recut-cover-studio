@@ -8,3 +8,4 @@
 - 提供渠道尺寸、提示词模板、素材库参考图选择和可追溯生成历史。
 - 生成图片由 Recut Media Platform 保存，App 仅保存 Asset 引用与元数据。
 - Codex 原生图片通过 `recut.media.import_image` 归档为同一套 Asset，再进入历史与模板引用。
+- 工作台改为左侧输入、右侧本次真实 Asset 输出；取消假的封面预览。

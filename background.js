@@ -1,6 +1,6 @@
 /*
  * [INPUT]: 依赖平台注入的 ctx.sqlite；图片本体与生命周期由 Media Platform 的 Asset 管理
- * [OUTPUT]: 注册封面工作台配置、模板与生成历史的读写 operation；生成后仅保存 assetId 和可追溯元数据
+ * [OUTPUT]: 注册封面工作台配置、当前真实预览、模板与生成历史的读写 operation；生成后仅保存 assetId 和可追溯元数据
  * [POS]: cover-studio 的唯一业务后端；把模板选择和封面历史固化为工作区 App 数据，不创建项目或复制素材文件
  * [PROTOCOL]: 变更时更新此头部，然后检查 README.md
  */
@@ -24,7 +24,7 @@ function identifier() { return `${Date.now()}-${Math.random().toString(16).slice
 function readContext(_, ctx) {
   ensureSchema(ctx);
   const rows = ctx.sqlite.query("select value from cover_meta where key = ?", ["draft"]);
-  return rows.length ? JSON.parse(rows[0].value) : { channel: "小红书", width: 1242, height: 1660, templateId: "editorial", referenceAssetIds: [], brief: "" };
+  return rows.length ? JSON.parse(rows[0].value) : { channel: "小红书", width: 1242, height: 1660, templateId: "editorial", referenceAssetIds: [], brief: "", previewAssetId: "" };
 }
 
 function configure(input, ctx) {
@@ -33,7 +33,8 @@ function configure(input, ctx) {
   const width = Number(input.width);
   const height = Number(input.height);
   if (!channel || !Number.isFinite(width) || width < 1 || !Number.isFinite(height) || height < 1) throw new Error("channel, width and height are required");
-  const draft = { channel, width, height, templateId: text(input.templateId), referenceAssetIds: ids(input.referenceAssetIds), brief: text(input.brief), updatedAt: new Date().toISOString() };
+  const current = readContext({}, ctx);
+  const draft = { channel, width, height, templateId: text(input.templateId), referenceAssetIds: ids(input.referenceAssetIds), brief: text(input.brief), previewAssetId: text(current.previewAssetId), updatedAt: new Date().toISOString() };
   ctx.sqlite.execute("insert into cover_meta (key, value) values (?, ?) on conflict(key) do update set value = excluded.value", ["draft", JSON.stringify(draft)]);
   return draft;
 }
@@ -70,6 +71,8 @@ function saveCover(input, ctx) {
   if (!assetId || !prompt || !channel || !Number.isFinite(width) || !Number.isFinite(height)) throw new Error("assetId, prompt, channel, width and height are required");
   const cover = { id: identifier(), assetId, prompt, channel, width, height, templateId: text(input.templateId), referenceAssetIds: ids(input.referenceAssetIds), createdAt: new Date().toISOString() };
   ctx.sqlite.execute("insert into cover_history (id, asset_id, prompt, channel, width, height, template_id, reference_asset_ids_json, created_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?)", [cover.id, cover.assetId, cover.prompt, cover.channel, cover.width, cover.height, cover.templateId, JSON.stringify(cover.referenceAssetIds), cover.createdAt]);
+  const draft = { ...readContext({}, ctx), previewAssetId: assetId, updatedAt: new Date().toISOString() };
+  ctx.sqlite.execute("insert into cover_meta (key, value) values (?, ?) on conflict(key) do update set value = excluded.value", ["draft", JSON.stringify(draft)]);
   return cover;
 }
 

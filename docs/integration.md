@@ -28,7 +28,7 @@ Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 M
       ├─ Media Platform route → recut.image.generate
       └─ Codex 原生方案 → 宿主提供的图片生成能力
   → Media Asset assetId
-  → cover.save
+  → cover.save（写入历史并更新当前真实预览 Asset）
   → cover.list
 ```
 
@@ -38,12 +38,12 @@ Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 M
 
 | Operation | Surface | 责任 |
 | --- | --- | --- |
-| `cover.context` | API, MCP | 读取当前渠道、尺寸、模板、参考图和补充要求；生成前的唯一事实来源。 |
+| `cover.context` | API, MCP | 读取当前渠道、尺寸、模板、参考图、补充要求和 `previewAssetId`；生成前的唯一事实来源。 |
 | `cover.configure` | API | 保存 UI 当前选择；不生成图片。 |
 | `template.list` | API, MCP | 返回内置模板和用户保存模板。 |
 | `template.save` | API, MCP | 保存提示词与 Asset 引用组成的可复用模板；不复制媒体。 |
 | `cover.list` | API | 按创建时间倒序返回历史元数据。 |
-| `cover.save` | MCP | 在图片生成成功后保存完整元数据。 |
+| `cover.save` | MCP | 在图片生成成功后保存完整元数据，并把该真实 Asset 更新为当前预览。 |
 
 所有 operation 的输入 schema 以 `manifest.json` 为准。不要在文档中复制第二份 schema；变更 schema 时先更新 manifest，再同步本表的责任描述。
 
@@ -60,7 +60,7 @@ Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 M
 
 | 表 | 责任 |
 | --- | --- |
-| `cover_meta` | 当前 UI 创作选择；键 `draft` 保存 JSON。 |
+| `cover_meta` | 当前 UI 创作选择与 `previewAssetId`；键 `draft` 保存 JSON。 |
 | `cover_templates` | 用户保存的模板。 |
 | `cover_history` | 已成功生成封面的可追溯记录。 |
 
