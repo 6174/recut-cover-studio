@@ -35,7 +35,7 @@ UI 开发时，在 `ui/` 内执行 `npm ci && npm run dev`；发布或安装前�
 
 `manifest.json` 是唯一的运行时配置。它声明此 App 为 `standalone`，因此 Recut 会为它创建一个稳定的私有工作区 scope，而不会创建用户项目。
 
-发布到 GitHub 后，在 `manifest.json` 中补充 `repository` 的 HTTPS 地址；用户便可从 Recut Apps 安装该仓库。
+App 已发布在 [6174/recut-cover-studio](https://github.com/6174/recut-cover-studio)，`manifest.json` 声明同一 HTTPS 地址；用户可从 Recut Apps 市场直接安装。
 
 ## 数据与隐私边界
 

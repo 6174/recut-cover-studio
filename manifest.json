@@ -4,6 +4,7 @@
   "name": "封面生成",
   "author": "Recut",
   "description": "用渠道尺寸、参考封面和创作要求生成并沉淀封面素材。",
+  "repository": "https://github.com/6174/recut-cover-studio",
   "version": "0.2.0",
   "type": "standalone",
   "background": "background.js",
