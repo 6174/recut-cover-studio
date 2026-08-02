@@ -1,22 +1,22 @@
 # Cover Studio - Recut 封面生成 App
 
-Cover Studio 是一个为 Recut 设计的工作区型封面创作台。它将发布渠道尺寸、可复用提示词模板和素材库参考图放进一次清晰的选择流程；生成图片由 Recut 素材库统一保存，应用只保留能够复现决策的元数据。
+Cover Studio 是一个为 Recut 设计的工作区型封面创作台。它将发布渠道尺寸、参考图、参考封面和创作要求放进一次清晰的选择流程；生成图片由 Recut 素材库统一保存，应用只保留能够复现决策的元数据。
 
-它不是项目管理工具。打开一次，继续使用同一组模板和历史；不必为每张封面创建项目。
+它不是项目管理工具。打开一次，继续使用同一份创作上下文和历史；不必为每张封面创建项目。
 
 ## 功能
 
-- **渠道尺寸**：内置小红书、抖音、B 站和 YouTube 画幅，可继续扩展。
-- **封面模板**：模板是可编辑提示词与参考图 Asset ID 的组合，不是不可追溯的截图。
-- **参考图选择**：从 Recut 素材库选择一张或多张已完成图片，作为生成的视觉参考。
+- **渠道尺寸**：下拉选择国内和海外主流渠道；抖音、微信视频号等横竖画幅是独立规格。
+- **参考图**：从素材库选择或上传本机图片，用于约束主体、产品、人物或画面元素。
+- **参考封面**：从素材库选择或上传本机图片，用于约束构图、留白和视觉语气。
 - **Agent 生成**：界面将选择交给 Recut Agent；Agent 按平台配置选择图片生成方案。能取得 Recut Asset 的结果才会进入素材库历史。
-- **可追溯历史**：每次成功生成都保存 `assetId`、完整提示词、渠道、尺寸、模板和参考图。图片本体仍属于素材库。
+- **可追溯历史**：每次成功生成都保存 `assetId`、完整提示词、渠道、尺寸与两类参考。图片本体仍属于素材库。
 
 ## 使用方式
 
 1. 在 Recut 的 **Apps** 中打开“封面生成”。
-2. 选择发布渠道与尺寸。
-3. 选择模板；可从素材库附加参考封面。
+2. 从下拉框选择发布渠道与尺寸。
+3. 选择或上传参考图；需要复用风格时，再选择或上传参考封面。
 4. 写下本次画面要求，点击“交给 Agent 生成”。
 5. Agent 成功生成后会将封面保存在素材库，并写入下方历史。
 
@@ -41,9 +41,8 @@ UI 开发时，在 `ui/` 内执行 `npm ci && npm run dev`；发布或安装前�
 
 | 数据 | 归属与保存位置 |
 | --- | --- |
-| 生成图片和用户上传参考图 | Recut Media Platform 的素材库，以全局 `assetId` 标识 |
-| 模板 | App SQLite；保存提示词、默认尺寸和参考图 `assetId` |
-| 当前选择 | App SQLite；保存渠道、尺寸、模板、参考图、补充要求和本次真实预览的 `assetId` |
+| 生成图片、用户上传参考图和参考封面 | Recut Media Platform 的素材库，以全局 `assetId` 标识 |
+| 当前选择 | App SQLite；保存渠道、尺寸、两类参考、补充要求和本次真实预览的 `assetId` |
 | 历史记录 | App SQLite；保存可追溯元数据，不复制媒体文件 |
 
 App 不读取其他 App 的数据库，也不写入本地媒体文件。它只通过 Recut 的公开 capability、MCP 和 Asset ID 协议与平台协作。
@@ -52,20 +51,20 @@ App 不读取其他 App 的数据库，也不写入本地媒体文件。它只�
 
 ```text
 ui/dist/index.html
-  ├─ 左侧选择渠道、模板、参考图和补充要求
+  ├─ 左侧选择渠道、参考图、参考封面和补充要求
   ├─ 右侧只渲染本次已归档的真实 Asset
   ├─ 调用 background.js 保存当前配置、真实预览与读取历史
   └─ 发送生成任务给 Recut Agent
 
 background.js
   ├─ cover_meta          当前创作选择与当前预览 Asset
-  ├─ cover_templates     可复用模板
   └─ cover_history       指向素材库 Asset 的生成历史
 
 Recut Agent
   ├─ 按 `recut.project_context` 选择图片生成方案
   │   ├─ Media Platform route → `recut.image.generate`
   │   └─ Codex 原生方案 → 宿主提供的图片生成能力
+  ├─ 用户上传参考图/参考封面 → `/v1/media/assets` → Asset ID → cover.configure
   ├─ Media Platform result → Recut Media Asset → cover.save
   └─ Codex 原生 result → 写入项目 → recut.media.import_image → Asset → cover.save
 ```

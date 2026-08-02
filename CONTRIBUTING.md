@@ -22,7 +22,7 @@ cd ../apps/cover-studio/ui && npm ci && npm run build
 修改 `background.js` 时，至少检查以下路径：
 
 1. 保存 UI 选择后，`cover.context` 返回同一份数据。
-2. `template.save` 后，`template.list` 能返回该模板。
+2. 本机上传参考素材后，`POST /v1/media/assets` 返回的 Asset ID 会被写入对应的参考图或参考封面集合。
 3. 只有带真实 `assetId` 的 `cover.save` 能进入 `cover.list`。
 4. `cover.save` 后，`cover.context.previewAssetId` 必须指向同一个真实 Asset。
 
@@ -31,7 +31,7 @@ cd ../apps/cover-studio/ui && npm ci && npm run build
 - 一个提交只解决一个问题。
 - 不提交素材库内容、SQLite 数据库、凭据或生成图片。
 - `ui/dist/` 是安装入口，修改 UI 后必须重新构建并提交对应产物。
-- 新增渠道尺寸或模板时，说明它的实际发布场景；不要用“通用”掩盖不兼容的画幅。
+- 新增渠道尺寸时，说明它的实际发布场景；横竖版是独立规格，不要用“通用”掩盖不兼容的画幅。
 - 变更文件职责、目录或公开 operation 后，更新相应 README 与集成契约。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 README.md

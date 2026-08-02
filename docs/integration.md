@@ -23,7 +23,7 @@ Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 M
 用户选择
   → cover.configure
   → cover.context
-  → Agent 读取 recut.project_context、模板与上下文
+  → Agent 读取 recut.project_context 与创作上下文
   → 根据平台配置选择图片生成方案
       ├─ Media Platform route → recut.image.generate
       └─ Codex 原生方案 → 宿主提供的图片生成能力
@@ -38,10 +38,8 @@ Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 M
 
 | Operation | Surface | 责任 |
 | --- | --- | --- |
-| `cover.context` | API, MCP | 读取当前渠道、尺寸、模板、参考图、补充要求和 `previewAssetId`；生成前的唯一事实来源。 |
+| `cover.context` | API, MCP | 读取当前渠道、尺寸、参考图、参考封面、补充要求和 `previewAssetId`；生成前的唯一事实来源。 |
 | `cover.configure` | API | 保存 UI 当前选择；不生成图片。 |
-| `template.list` | API, MCP | 返回内置模板和用户保存模板。 |
-| `template.save` | API, MCP | 保存提示词与 Asset 引用组成的可复用模板；不复制媒体。 |
 | `cover.list` | API | 按创建时间倒序返回历史元数据。 |
 | `cover.save` | MCP | 在图片生成成功后保存完整元数据，并把该真实 Asset 更新为当前预览。 |
 
@@ -49,7 +47,8 @@ Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 M
 
 ## Asset 规则
 
-- 参考图只以 `referenceAssetIds` 保存，并按当前图片生成方案支持的参考图输入方式传入；Media Platform route 使用 `imageAssetIds`。
+- `referenceAssetIds` 是参考图，只约束主体、产品、人物或画面元素；`referenceCoverAssetIds` 是参考封面，只约束构图、版式留白与视觉语气。两类引用按当前图片生成方案支持的输入方式传入；Media Platform route 使用 `imageAssetIds`。
+- UI 上传本机参考素材时，使用 `POST /v1/media/assets` 的 `multipart/form-data`，字段名为 `file`。响应中的真实 Asset ID 立即写入对应引用集合；上传文件不保存在 App SQLite。
 - 生成结果只以 `assetId` 保存。Media Platform 是图片内容、状态和文件路径的唯一真相源；Codex 原生图也必须经过 `recut.media.import_image` 成为该 Asset，不能以对话结果或本地路径替代。
 - 历史数据可以删除或重做，但绝不删除素材库中的 Asset。
 - 图片生成提示词应明确尺寸，禁止要求模型生成可读文字、Logo 或水印。
@@ -61,7 +60,6 @@ Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 M
 | 表 | 责任 |
 | --- | --- |
 | `cover_meta` | 当前 UI 创作选择与 `previewAssetId`；键 `draft` 保存 JSON。 |
-| `cover_templates` | 用户保存的模板。 |
 | `cover_history` | 已成功生成封面的可追溯记录。 |
 
 表是 App 私有实现，不构成跨 App API。外部消费者只能通过 operation 访问它们。

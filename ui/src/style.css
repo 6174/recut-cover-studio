@@ -4,7 +4,8 @@
  * [POS]: Cover Studio UI 的视觉基础层；组件只使用语义 token，不硬编码平台页面样式
  * [PROTOCOL]: 变更时更新此头部，然后检查 README.md
  */
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "./";
 
 @theme inline {
   --color-background: var(--background); --color-foreground: var(--foreground); --color-card: var(--card); --color-card-foreground: var(--foreground); --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground); --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground); --color-border: var(--border); --color-ring: var(--ring); --font-sans: Arial, "Noto Sans SC", sans-serif; --font-mono: "SFMono-Regular", Consolas, monospace;
