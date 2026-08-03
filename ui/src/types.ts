@@ -7,3 +7,10 @@
 export type Channel = { id: string; label: string; width: number; height: number; group: "国内渠道" | "海外渠道" };
 export type Draft = { channel: string; width: number; height: number; referenceAssetIds: string[]; referenceCoverAssetIds: string[]; brief: string; previewAssetId?: string };
 export type Cover = { id: string; assetId: string; prompt: string; channel: string; width: number; height: number; referenceAssetIds: string[]; referenceCoverAssetIds: string[]; createdAt: string };
+export type ImageModelConfiguration = {
+  id: string;
+  model: { id: string; name: string; inputModes: string[] };
+  credentialID: string;
+  credentialName: string;
+  providerName: string;
+};

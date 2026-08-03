@@ -1,6 +1,6 @@
 /*
  * [INPUT]: 依赖平台注入的 ctx.sqlite；图片本体与生命周期由 Media Platform 的 Asset 管理
- * [OUTPUT]: 注册封面工作台配置、当前真实预览与生成历史的读写 operation；生成后仅保存 assetId 和可追溯元数据
+ * [OUTPUT]: 注册封面工作台配置、当前真实预览与生成历史的读写 operation；直接生成与 Agent 均只在获得真实 assetId 后保存可追溯元数据
  * [POS]: cover-studio 的唯一业务后端；把渠道、参考图、创作要求和封面历史固化为工作区 App 数据，不创建项目或复制素材文件
  * [PROTOCOL]: 变更时更新此头部，然后检查 README.md
  */

@@ -22,13 +22,9 @@ Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 M
 ```text
 用户选择
   → cover.configure
-  → cover.context
-  → Agent 读取 recut.project_context 与创作上下文
-  → 根据平台配置选择图片生成方案
-      ├─ Media Platform route → recut.image.generate
-      └─ Codex 原生方案 → 宿主提供的图片生成能力
-  → Media Asset assetId
-  → cover.save（写入历史并更新当前真实预览 Asset）
+  → 二选一
+      ├─ 直接生成 → 宿主读取已连接 Provider 的可用图片模型 → 用选定 modelId + credentialId 在当前 workspace scope 创建媒体任务 → Media Asset assetId → cover.save
+      └─ 交给 Codex → 复制 Prompt + 回填右侧输入（用户确认发送）→ Agent 读取 recut.project_context 与创作上下文 → Media Asset assetId → cover.save
   → cover.list
 ```
 
@@ -41,7 +37,7 @@ Cover Studio 遵循 Recut App Host 的标准 manifest、operation、SQLite 和 M
 | `cover.context` | API, MCP | 读取当前渠道、尺寸、参考图、参考封面、补充要求和 `previewAssetId`；生成前的唯一事实来源。 |
 | `cover.configure` | API | 保存 UI 当前选择；不生成图片。 |
 | `cover.list` | API | 按创建时间倒序返回历史元数据。 |
-| `cover.save` | MCP | 在图片生成成功后保存完整元数据，并把该真实 Asset 更新为当前预览。 |
+| `cover.save` | API, MCP | 在图片生成成功后保存完整元数据，并把该真实 Asset 更新为当前预览；API 只由宿主确认完成的直接生成调用。 |
 
 所有 operation 的输入 schema 以 `manifest.json` 为准。不要在文档中复制第二份 schema；变更 schema 时先更新 manifest，再同步本表的责任描述。
 

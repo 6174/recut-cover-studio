@@ -5,7 +5,7 @@
   "author": "Recut",
   "description": "用渠道尺寸、参考封面和创作要求生成并沉淀封面素材。",
   "repository": "https://github.com/6174/recut-cover-studio",
-  "version": "0.2.0",
+  "version": "0.3.1",
   "type": "standalone",
   "background": "background.js",
   "ui": { "standaloneView": "ui/dist/index.html" },
@@ -39,7 +39,7 @@
     },
     {
       "name": "cover.save",
-      "surfaces": ["mcp"],
+      "surfaces": ["api", "mcp"],
       "description": "在当前平台配置的图片生成路径成功产出 Recut Media Asset 后，保存该封面的 assetId 和完整生成元数据。不得保存没有 assetId 的文字设想。",
       "inputSchema": { "type": "object", "required": ["assetId", "prompt", "channel", "width", "height"], "properties": { "assetId": { "type": "string" }, "prompt": { "type": "string" }, "channel": { "type": "string" }, "width": { "type": "number" }, "height": { "type": "number" }, "referenceAssetIds": { "type": "array", "items": { "type": "string" } }, "referenceCoverAssetIds": { "type": "array", "items": { "type": "string" } } } }
     }

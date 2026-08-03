@@ -1,18 +1,18 @@
 /**
- * [INPUT]: 依赖宿主 SDK、Cover operation、Media Asset 上传接口与共享 Asset SSE 缓存
- * [OUTPUT]: 对外提供独立封面工作台的加载、编辑、上传、生成、历史刷新与错误恢复流程
- * [POS]: ui/src 编排层；顺序读取 App SQLite，避免并发 schema 初始化导致 database is locked
+ * [INPUT]: 依赖宿主 SDK、Cover operation、已配置的图片模型与共享平台素材选择器
+ * [OUTPUT]: 对外提供独立封面工作台的加载、编辑、全局素材多选/上传、模型直生、Codex 草稿回填、历史刷新与错误恢复流程
+ * [POS]: ui/src 编排层；顺序读取 App SQLite，直接生成只经宿主提交到当前 workspace scope，Codex 路径只回填右侧输入框
  * [PROTOCOL]: 变更时更新此头部，然后检查 README.md
  */
 import { createRoot } from "react-dom/client";
 import { useCallback, useEffect, useState } from "react";
-import { AssetPicker, type ReferenceKind } from "./asset-picker";
+import { type ReferenceKind } from "./asset-picker";
 import { CoverComposer } from "./cover-composer";
 import { CoverPreview } from "./cover-preview";
 import { HistoryGrid } from "./history-grid";
 import { recut } from "./recut-sdk";
-import type { Channel, Cover, Draft } from "./types";
-import { MediaAssetEventsProvider } from "./use-media-asset-events";
+import type { Channel, Cover, Draft, ImageModelConfiguration } from "./types";
+import { MediaAssetEventsProvider, useMediaAssets } from "./use-media-asset-events";
 import { Button } from "./ui";
 import "./style.css";
 
@@ -36,11 +36,29 @@ const channels: Channel[] = [
 ];
 
 const initialDraft: Draft = { channel: "xiaohongshu-note", width: 1242, height: 1660, referenceAssetIds: [], referenceCoverAssetIds: [], brief: "", previewAssetId: "" };
+type PendingGeneration = { assetID: string; prompt: string; draft: Draft };
+
+function coverPrompt(channel: Channel, draft: Draft) {
+  return [
+    `为${channel.label}生成一张可直接投放的封面，画布严格为 ${channel.width} × ${channel.height} 像素。`,
+    draft.brief ? `画面要求：${draft.brief}` : "画面要求：根据渠道规格制作有清晰视觉焦点的专业封面。",
+    draft.referenceAssetIds.length ? "参考图用于约束主体、产品、人物或画面元素。" : "没有参考图，请自行建立与画面要求一致的主体。",
+    draft.referenceCoverAssetIds.length ? "参考封面用于约束构图、版式留白与视觉语气。" : "请根据画面要求决定构图、版式留白与视觉语气。",
+    "不要生成可读文字、数字、Logo 或水印；为后续可控标题排版保留明确留白。",
+  ].join("\n");
+}
+
+function codexPrompt(prompt: string) {
+  return `${prompt}\n\n请先调用 recut.project_context 和 recut.cover-studio.cover.context，确认当前平台图片生成方案与两类参考素材。按配置生成封面；若使用 Codex 原生图片生成，先将最终图片写入当前 Recut 项目目录，再调用 recut.media.import_image 归档。只有取得真实 assetId 后，调用 recut.cover-studio.cover.save 保存 prompt、渠道、尺寸、referenceAssetIds 和 referenceCoverAssetIds。不得只交付对话预览或伪造 assetId。`;
+}
 
 function App() {
+  const { byID } = useMediaAssets();
   const [draft, setDraft] = useState<Draft>(initialDraft);
   const [covers, setCovers] = useState<Cover[]>([]);
-  const [pickerKind, setPickerKind] = useState<ReferenceKind | null>(null);
+  const [models, setModels] = useState<ImageModelConfiguration[]>([]);
+  const [selectedRoute, setSelectedRoute] = useState("");
+  const [pending, setPending] = useState<PendingGeneration | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("正在连接封面工作台…");
@@ -58,39 +76,80 @@ function App() {
     } catch (cause) { setMessage(cause instanceof Error ? `无法读取创作台：${cause.message}` : "无法读取创作台。"); } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { window.addEventListener("recut-sdk-ready", refresh); void refresh(); return () => window.removeEventListener("recut-sdk-ready", refresh); }, [refresh]);
+  const loadModels = useCallback(async () => {
+    try {
+      const configuration = await recut.media.configuration() as ImageModelConfiguration[];
+      const imageModels = configuration.filter((item) => item.model.id !== "codex/image");
+      setModels(imageModels);
+      setSelectedRoute((current) => imageModels.some((item) => item.id === current) ? current : imageModels[0]?.id ?? "");
+    } catch { setModels([]); }
+  }, []);
+
+  useEffect(() => { const ready = () => { void refresh(); void loadModels(); }; window.addEventListener("recut-sdk-ready", ready); ready(); return () => window.removeEventListener("recut-sdk-ready", ready); }, [loadModels, refresh]);
   useEffect(() => recut.events.subscribe((event) => { const value = event as { type?: string; appId?: string; name?: string }; if (value.type === "app.capability.completed" && value.appId === "recut.cover-studio" && value.name === "cover.save") void refresh(); }), [refresh]);
 
-  const updateReferences = (kind: ReferenceKind, ids: string[]) => setDraft((current) => kind === "image" ? { ...current, referenceAssetIds: ids } : { ...current, referenceCoverAssetIds: ids });
-
-  const uploadReference = async (kind: ReferenceKind, file: File) => {
-    if (!file.type.startsWith("image/")) throw new Error("只能上传图片作为参考素材。");
-    const form = new FormData();
-    form.append("file", file);
-    const response = await fetch("/v1/media/assets", { method: "POST", body: form });
-    if (!response.ok) {
-      const body = await response.json().catch(() => null) as { error?: string } | null;
-      throw new Error(body?.error ?? `“${file.name}”上传失败，请重试。`);
+  useEffect(() => {
+    const asset = pending ? byID[pending.assetID] : undefined;
+    if (!pending || !asset) return;
+    if (asset.status === "failed") {
+      setPending(null);
+      setMessage("图片模型未能生成封面；请检查模型配置或换一个模型后重试。");
+      return;
     }
-    const asset = await response.json() as { id?: string };
-    if (!asset.id) throw new Error("上传完成但未收到素材库 Asset ID。");
-    setDraft((current) => kind === "image"
-      ? { ...current, referenceAssetIds: [...new Set([...current.referenceAssetIds, asset.id!])] }
-      : { ...current, referenceCoverAssetIds: [...new Set([...current.referenceCoverAssetIds, asset.id!])] });
+    if (asset.status !== "completed") return;
+    let active = true;
+    void (async () => {
+      setBusy(true);
+      try {
+        await recut.background.call("cover.save", { assetId: pending.assetID, prompt: pending.prompt, channel: pending.draft.channel, width: pending.draft.width, height: pending.draft.height, referenceAssetIds: pending.draft.referenceAssetIds, referenceCoverAssetIds: pending.draft.referenceCoverAssetIds });
+        if (active) { setPending(null); setMessage("封面已生成并归档到素材库历史。"); await refresh(); }
+      } catch (cause) { if (active) { setPending(null); setMessage(cause instanceof Error ? `封面已生成，但归档失败：${cause.message}` : "封面已生成，但归档失败。"); } } finally { if (active) setBusy(false); }
+    })();
+    return () => { active = false; };
+  }, [byID, pending, refresh]);
+
+  const updateReferences = (kind: ReferenceKind, ids: string[]) => setDraft((current) => kind === "image" ? { ...current, referenceAssetIds: ids } : { ...current, referenceCoverAssetIds: ids });
+  const openReferences = async (kind: ReferenceKind) => {
+    const selectedIDs = kind === "image" ? draft.referenceAssetIds : draft.referenceCoverAssetIds;
+    try {
+      const result = await recut.media.pick(["image"], { multiple: true, selectedIDs }) as { id: string }[] | null;
+      if (result) updateReferences(kind, result.map((asset) => asset.id));
+    } catch (cause) { setMessage(cause instanceof Error ? cause.message : "无法打开素材选择器。"); }
   };
 
   const generate = async () => {
+    const model = models.find((item) => item.id === selectedRoute);
+    const channel = channels.find((item) => item.id === draft.channel) ?? channels[0];
+    if (!model) { setMessage("请先配置并选择一个图片模型。"); return; }
+    const references = [...draft.referenceAssetIds, ...draft.referenceCoverAssetIds];
+    if (references.length && !model.model.inputModes.includes("image")) { setMessage(`“${model.model.name}”不支持参考图；请选择支持参考图的模型，或先移除参考素材。`); return; }
+    const prompt = coverPrompt(channel, draft);
     setBusy(true);
     try {
       await recut.background.call("cover.configure", draft);
-      await recut.agent.send("请生成这一张封面：先调用 recut.project_context 和 recut.cover-studio.cover.context，按当前平台图片生成方案执行。参考图用于约束主体、产品、人物或画面元素；参考封面用于约束构图、版式留白与视觉语气。无论底层使用 Media Platform 或 Codex 原生生成，最终都必须以 Recut Media Asset 交付：Media Platform 直接使用返回的 assetId；Codex 原生图先写入当前 Recut 项目目录，再调用 recut.media.import_image 归档并使用返回的 assetId。之后调用 recut.cover-studio.cover.save 保存完整提示词、渠道、尺寸、referenceAssetIds 和 referenceCoverAssetIds。不要伪造 assetId 或只交付对话图片；若归档失败，先修复归档路径。画面不要出现可读文字、Logo 或水印，并保留标题留白。");
-      setMessage("已交给 Agent；生成图归档为 Asset 后会自动出现在历史中。");
-    } catch (cause) { setMessage(cause instanceof Error ? cause.message : "无法发起生成。"); } finally { setBusy(false); }
+      const job = await recut.media.generate({ prompt, modelID: model.model.id, credentialID: model.credentialID, referenceIDs: references }) as { assetIds?: string[] };
+      const assetID = job.assetIds?.[0];
+      if (!assetID) throw new Error("图片任务没有返回素材 ID");
+      setPending({ assetID, prompt, draft: { ...draft, referenceAssetIds: [...draft.referenceAssetIds], referenceCoverAssetIds: [...draft.referenceCoverAssetIds] } });
+      setMessage(`已提交给 ${model.model.name}，完成后会自动归档。`);
+    } catch (cause) { setMessage(cause instanceof Error ? `无法生成封面：${cause.message}` : "无法发起生成。"); } finally { setBusy(false); }
+  };
+
+  const compose = async () => {
+    const channel = channels.find((item) => item.id === draft.channel) ?? channels[0];
+    const prompt = codexPrompt(coverPrompt(channel, draft));
+    setBusy(true);
+    try {
+      await recut.background.call("cover.configure", draft);
+      const copy = navigator.clipboard?.writeText(prompt) ?? Promise.reject(new Error("clipboard unavailable"));
+      const [clipboard, composed] = await Promise.allSettled([copy, recut.agent.compose(prompt)]);
+      if (composed.status === "rejected") throw composed.reason;
+      setMessage(clipboard.status === "fulfilled" ? "Prompt 已复制并填入右侧 Codex 输入框；请检查后由你确认发送。" : "Prompt 已填入右侧 Codex 输入框；浏览器未允许自动复制，请在输入框中手动复制。");
+    } catch (cause) { setMessage(cause instanceof Error ? `无法准备 Codex Prompt：${cause.message}` : "无法准备 Codex Prompt。"); } finally { setBusy(false); }
   };
 
   const channel = channels.find((item) => item.id === draft.channel) ?? channels[0];
-  const pickerIDs = pickerKind === "image" ? draft.referenceAssetIds : draft.referenceCoverAssetIds;
-  return <main className="min-h-screen bg-background p-4 sm:p-6"><div className="mx-auto max-w-[1600px]"><header className="mb-5 border-b border-border/80 pb-4"><p className="font-mono text-[10px] font-semibold tracking-[0.18em] text-primary">RECUT APP / COVER STUDIO</p><h1 className="mt-1.5 text-2xl font-semibold tracking-tight sm:text-3xl">封面生成</h1><p className="mt-1 text-sm text-muted-foreground">左侧填写生成意图；右侧只展示本次已经归档的真实封面。</p></header>{loading && !covers.length ? <div className="grid min-h-72 place-items-center rounded-lg border bg-card text-sm text-muted-foreground">正在读取封面创作台…</div> : <><div className="grid gap-5 xl:items-stretch xl:grid-cols-[27rem_minmax(0,1fr)]"><CoverComposer busy={busy} channels={channels} draft={draft} onChange={setDraft} onGenerate={() => void generate()} onOpenReferences={setPickerKind} onRemoveReference={(kind, id) => updateReferences(kind, (kind === "image" ? draft.referenceAssetIds : draft.referenceCoverAssetIds).filter((item) => item !== id))} /><CoverPreview channel={channel} draft={draft} /></div><HistoryGrid covers={covers} /></>}<footer className="mt-4 flex items-center justify-between gap-4 text-xs text-muted-foreground"><p role="status">{message}</p><Button disabled={loading} onClick={() => void refresh()} type="button" variant="ghost">重新同步</Button></footer></div>{pickerKind && <AssetPicker ids={pickerIDs} kind={pickerKind} onChange={(ids) => updateReferences(pickerKind, ids)} onClose={() => setPickerKind(null)} onUpload={(file) => uploadReference(pickerKind, file)} />}</main>;
+  return <main className="min-h-screen bg-background p-4 sm:p-6"><div className="mx-auto max-w-[1600px]"><header className="mb-5 border-b border-border/80 pb-4"><p className="font-mono text-[10px] font-semibold tracking-[0.18em] text-primary">RECUT APP / COVER STUDIO</p><h1 className="mt-1.5 text-2xl font-semibold tracking-tight sm:text-3xl">封面生成</h1><p className="mt-1 text-sm text-muted-foreground">选择已配置模型直接生成，或把 Prompt 交给右侧 Codex 继续创作。</p></header>{loading && !covers.length ? <div className="grid min-h-72 place-items-center rounded-lg border bg-card text-sm text-muted-foreground">正在读取封面创作台…</div> : <><div className="grid gap-5 xl:items-stretch xl:grid-cols-[27rem_minmax(0,1fr)]"><CoverComposer busy={busy || Boolean(pending)} channels={channels} draft={draft} models={models} onChange={setDraft} onCompose={() => void compose()} onConfigureModels={() => void recut.settings.open("multimodal")} onGenerate={() => void generate()} onModelChange={setSelectedRoute} onOpenReferences={(kind) => void openReferences(kind)} onRemoveReference={(kind, id) => updateReferences(kind, (kind === "image" ? draft.referenceAssetIds : draft.referenceCoverAssetIds).filter((item) => item !== id))} selectedModelID={selectedRoute} /><CoverPreview channel={channel} draft={draft} /></div><HistoryGrid covers={covers} /></>}<footer className="mt-4 flex items-center justify-between gap-4 text-xs text-muted-foreground"><p role="status">{message}</p><Button disabled={loading || busy || Boolean(pending)} onClick={() => { void refresh(); void loadModels(); }} type="button" variant="ghost">重新同步</Button></footer></div></main>;
 }
 
 createRoot(document.getElementById("root")!).render(<MediaAssetEventsProvider><App /></MediaAssetEventsProvider>);
