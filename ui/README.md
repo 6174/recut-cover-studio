@@ -13,4 +13,7 @@ dist/: 已提交的发布构建产物；`manifest.json` 的 standaloneView 指�
 
 `main.tsx -> recut-sdk.ts -> Host MessageChannel` 负责 App operation、所有已连接 Provider 图片模型读取、受当前 scope 约束的直生、设置定位与 Codex Prompt 回填；`cover-composer.tsx` 用 App 内置列表替代浏览器原生选择框；`use-media-asset-events.tsx -> /v1/media/events` 维护图片素材缓存。首次读取 operation 固定串行执行，避免多个 lazy schema 初始化竞争同一个 SQLite 写锁。
 
+设计规范
+`src/style.css` 继承 Recut 共享 token：白色画布、品牌绿主命令、低圆角卡片和清晰的绿色焦点环。组件只能使用语义 token，不能引入独立色板。
+
 [PROTOCOL]: 变更时更新此头部，然后检查 README.md

@@ -8,8 +8,8 @@
 @source "./";
 
 @theme inline {
-  --color-background: var(--background); --color-foreground: var(--foreground); --color-card: var(--card); --color-card-foreground: var(--foreground); --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground); --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground); --color-border: var(--border); --color-ring: var(--ring); --font-sans: Arial, "Noto Sans SC", sans-serif; --font-mono: "SFMono-Regular", Consolas, monospace;
+  --color-background: var(--background); --color-foreground: var(--foreground); --color-card: var(--card); --color-card-foreground: var(--foreground); --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground); --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground); --color-border: var(--border); --color-ring: var(--ring); --font-sans: Inter, "PingFang SC", "Noto Sans SC", Arial, sans-serif; --font-mono: "SFMono-Regular", Consolas, monospace;
 }
 
-:root { --background: oklch(0.978 0.003 150); --foreground: oklch(0.18 0.009 150); --card: oklch(1 0 0); --primary: oklch(0.69 0.18 151); --primary-foreground: oklch(0.18 0.01 150); --muted: oklch(0.948 0.005 150); --muted-foreground: oklch(0.48 0.012 150); --border: oklch(0.875 0.007 150); --ring: oklch(0.65 0.16 151); }
+:root { --background: oklch(0.99 0.003 150); --foreground: oklch(0.18 0.012 150); --card: oklch(1 0 0); --primary: oklch(0.66 0.17 151); --primary-foreground: oklch(1 0 0); --muted: oklch(0.965 0.006 150); --muted-foreground: oklch(0.48 0.014 150); --border: oklch(0.89 0.007 150); --ring: oklch(0.66 0.17 151); }
 @layer base { * { @apply border-border; } body { @apply min-h-screen bg-background font-sans text-foreground antialiased; } button, input, textarea { font: inherit; } }
