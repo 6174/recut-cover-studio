@@ -4,6 +4,8 @@
  * [POS]: ui/src 的宿主通信边界；业务组件不访问 SQLite、媒体 HTTP、终端或 Agent HTTP API
  * [PROTOCOL]: 变更时更新此头部，然后检查 README.md
  */
+import { useState } from "react";
+import { t, type Locale } from "./i18n";
 type RequestType = "state.query" | "background.call" | "agent.compose" | "media.configuration" | "media.generate" | "media.pick" | "settings.open";
 type Request = { id: string; type: RequestType; input: Record<string, unknown> };
 let port: MessagePort | null = null;
@@ -11,6 +13,16 @@ let sequence = 0;
 const pending = new Map<string, { resolve: (value: any) => void; reject: (error: Error) => void }>();
 
 function requestID() { sequence += 1; return `cover-${Date.now().toString(36)}-${sequence}`; }
+
+export function getRecutLocale(): Locale {
+  const param = new URLSearchParams(location.search).get("locale");
+  if (param === "zh" || param === "en") return param;
+  return navigator.language?.toLowerCase().startsWith("zh") ? "zh" : "en";
+}
+
+export function useRecutLocale(): Locale {
+  return useState<Locale>(getRecutLocale)[0];
+}
 
 window.addEventListener("message", (event) => {
   if (event.data?.type === "recut.project.event") {
@@ -31,7 +43,7 @@ window.addEventListener("message", (event) => {
 
 function call(type: RequestType, input: Record<string, unknown>) {
   return new Promise<any>((resolve, reject) => {
-    if (!port) return reject(new Error("Recut Host 尚未连接"));
+    if (!port) return reject(new Error(t(getRecutLocale(), "sdk.host-not-connected")));
     const id = requestID();
     pending.set(id, { resolve, reject });
     port.postMessage({ id, type, input } satisfies Request);

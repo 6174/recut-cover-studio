@@ -17,6 +17,20 @@
       "prompt": "我要生成一张封面。请先读取 recut.project_context 与 cover.context，确认当前平台图片生成方案、渠道尺寸、参考图、参考封面和补充要求；参考图约束主体或元素，参考封面约束构图、版式留白与视觉语气。按平台配置选择图片生成路径，可能是 Media Platform 的 recut.image.generate，也可能是宿主提供的 Codex 原生图片生成。无论使用哪条路径，最终都必须以 Recut Media Asset 交付并获得真实 assetId，才能调用 recut.cover-studio.cover.save 保存历史；Codex 原生图必须先写入当前 Recut 项目目录，再调用 recut.media.import_image 归档。不得伪造 assetId、只交付对话图片或保存没有 Asset 的历史。"
     }
   ],
+  "localized": {
+    "en": {
+      "name": "Cover Studio",
+      "description": "Generate and archive cover assets using channel sizes, reference covers and creative requirements.",
+      "onboarding": [
+        {
+          "id": "generate-cover",
+          "title": "Start from a cover",
+          "description": "Pick a publishing channel, reference image, reference cover and visual brief, then generate a usable cover.",
+          "prompt": "Generate a cover. First read recut.project_context and cover.context to confirm the platform image-generation scheme, channel size, reference image, reference cover and any extra requirements; the reference image constrains the subject or elements, and the reference cover constrains composition, layout whitespace and visual tone. Choose the image-generation path per the platform configuration, either Media Platform's recut.image.generate or the host's native Codex image generation. Whichever path is used, the result must be delivered as a Recut Media Asset with a real assetId before calling recut.cover-studio.cover.save to store history; Codex native images must first be written into the current Recut project directory and archived via recut.media.import_image. Never fabricate an assetId, hand over a chat-only image, or save history without an Asset."
+        }
+      ]
+    }
+  },
   "permissions": ["sqlite"],
   "operations": [
     {

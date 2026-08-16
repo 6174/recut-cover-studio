@@ -15,6 +15,7 @@ function ensureSchema(ctx) {
 function text(value) { return String(value || "").trim(); }
 function ids(value) { return [...new Set(Array.isArray(value) ? value.filter((item) => typeof item === "string" && item.trim()) : [])]; }
 function identifier() { return `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
+function message(ctx, zh, en) { return ctx.locale === "zh" ? zh : en; }
 
 function readContext(_, ctx) {
   ensureSchema(ctx);
@@ -29,7 +30,7 @@ function configure(input, ctx) {
   const channel = text(input.channel);
   const width = Number(input.width);
   const height = Number(input.height);
-  if (!channel || !Number.isFinite(width) || width < 1 || !Number.isFinite(height) || height < 1) throw new Error("channel, width and height are required");
+  if (!channel || !Number.isFinite(width) || width < 1 || !Number.isFinite(height) || height < 1) throw new Error(message(ctx, "必须提供 channel、width 和 height", "channel, width and height are required"));
   const current = readContext({}, ctx);
   const draft = { channel, width, height, referenceAssetIds: ids(input.referenceAssetIds), referenceCoverAssetIds: ids(input.referenceCoverAssetIds), brief: text(input.brief), previewAssetId: text(current.previewAssetId), updatedAt: new Date().toISOString() };
   ctx.sqlite.execute("insert into cover_meta (key, value) values (?, ?) on conflict(key) do update set value = excluded.value", ["draft", JSON.stringify(draft)]);
@@ -48,7 +49,7 @@ function saveCover(input, ctx) {
   const channel = text(input.channel);
   const width = Number(input.width);
   const height = Number(input.height);
-  if (!assetId || !prompt || !channel || !Number.isFinite(width) || !Number.isFinite(height)) throw new Error("assetId, prompt, channel, width and height are required");
+  if (!assetId || !prompt || !channel || !Number.isFinite(width) || !Number.isFinite(height)) throw new Error(message(ctx, "必须提供 assetId、prompt、channel、width 和 height", "assetId, prompt, channel, width and height are required"));
   const cover = { id: identifier(), assetId, prompt, channel, width, height, referenceAssetIds: ids(input.referenceAssetIds), referenceCoverAssetIds: ids(input.referenceCoverAssetIds), createdAt: new Date().toISOString() };
   ctx.sqlite.execute("insert into cover_history (id, asset_id, prompt, channel, width, height, reference_asset_ids_json, reference_cover_asset_ids_json, created_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?)", [cover.id, cover.assetId, cover.prompt, cover.channel, cover.width, cover.height, JSON.stringify(cover.referenceAssetIds), JSON.stringify(cover.referenceCoverAssetIds), cover.createdAt]);
   const draft = { ...readContext({}, ctx), previewAssetId: assetId, updatedAt: new Date().toISOString() };
