@@ -12,7 +12,7 @@ use-media-asset-events.tsx: iframe 内唯一图片 Asset SSE 缓存。
 recut-sdk.ts: Host MessageChannel 的 operation、媒体配置/直生、Agent 草稿回填、设置定位与项目事件通信边界。
 types.ts: App operation 与媒体配置返回值的领域类型。
 ui.tsx: 无业务的卡片与按钮原子。
-style.css: 与 Vox B-roll 同构的 Tailwind token 和基础样式。
+style.css: 与 Vox B-roll 同构的暗色优先 Tailwind token 和基础样式。
 css.d.ts: CSS 模块声明。
 
 依赖关系
