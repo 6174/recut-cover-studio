@@ -36,7 +36,7 @@
     {
       "name": "cover.context",
       "surfaces": ["api", "mcp"],
-      "description": "读取封面创作台当前选择的渠道、尺寸、参考图、参考封面和补充提示词。生成前必须调用。",
+      "description": "读取封面创作台当前选择的渠道、尺寸、参考图、参考封面和补充提示词。封面会话开始时调用一次，同一会话复用；仅在用户更改选择或工具报告状态失效后回读。",
       "inputSchema": { "type": "object", "properties": {} }
     },
     {
