@@ -8,7 +8,6 @@ export type Locale = "zh" | "en";
 
 export const zh = {
   "app.name": "封面生成",
-  "app.kicker": "RECUT APP / 封面生成",
   "app.subtitle": "选择已配置模型直接生成，或把 Prompt 交给右侧 Codex 继续创作。",
   "app.resync": "重新同步",
 
@@ -119,7 +118,6 @@ export const zh = {
 
 export const en: Record<string, string> = {
   "app.name": "Cover Studio",
-  "app.kicker": "RECUT APP / COVER STUDIO",
   "app.subtitle": "Generate directly with a configured model, or hand the prompt to Codex on the right.",
   "app.resync": "Resync",
 
